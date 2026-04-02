@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+
+import axios from 'axios'
 import toast from 'react-hot-toast'
 import { Droplets, Eye, EyeOff, LogIn } from 'lucide-react'
 
@@ -34,6 +36,21 @@ export default function Login() {
       viewer:  { username: 'viewer',  password: 'viewer1234'  },
     }
     setForm(creds[role])
+  }
+
+  const [settingUp, setSettingUp] = useState(false)
+
+  const handleSetup = async () => {
+    setSettingUp(true)
+    const tid = toast.loading('Initializing database & demo accounts...')
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/setup-cloud-demo`)
+      toast.success(res.data.detail || 'Database initialized!', { id: tid })
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Setup failed. Check backend logs.', { id: tid })
+    } finally {
+      setSettingUp(false)
+    }
   }
 
   return (
@@ -121,11 +138,29 @@ export default function Login() {
           </button>
         </form>
 
+        <p style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: 'var(--text-muted)' }}>
+          Don't have an account? <Link to="/register" style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>Create One</Link>
+        </p>
+
         {/* Demo accounts */}
         <div style={{ marginTop: 28, borderTop: '1px solid var(--border-subtle)', paddingTop: 20 }}>
-          <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginBottom: 12, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-            Demo Accounts
-          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.5px', textTransform: 'uppercase', margin: 0 }}>
+              Demo Accounts
+            </p>
+            <button
+              type="button"
+              onClick={handleSetup}
+              disabled={settingUp}
+              style={{
+                fontSize: 10, background: 'rgba(16,185,129,0.1)', color: '#10b981',
+                border: '1px solid rgba(16,185,129,0.2)', padding: '2px 8px',
+                borderRadius: 4, cursor: 'pointer', fontWeight: 600
+              }}
+            >
+              {settingUp ? 'Setting up...' : 'Setup Cloud DB'}
+            </button>
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {['admin', 'analyst', 'viewer'].map(role => (
               <button

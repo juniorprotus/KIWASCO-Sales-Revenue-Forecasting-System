@@ -22,8 +22,6 @@ services:
   - type: web
     name: kiwasco-frontend
     runtime: static
-    region: oregon
-    plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist

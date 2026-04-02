@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import Sidebar    from './components/Sidebar'
 import Login      from './pages/Login'
+import Register   from './pages/Register'
 import Dashboard  from './pages/Dashboard'
 import Forecasting from './pages/Forecasting'
 import Billing    from './pages/Billing'
@@ -40,8 +41,9 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
-      <Route path="/*"     element={user ? <PrivateLayout /> : <Navigate to="/login" replace />} />
+      <Route path="/login"    element={user ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
+      <Route path="/*"        element={user ? <PrivateLayout /> : <Navigate to="/login" replace />} />
     </Routes>
   )
 }
