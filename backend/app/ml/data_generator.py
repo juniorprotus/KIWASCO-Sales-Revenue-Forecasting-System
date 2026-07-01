@@ -11,13 +11,13 @@ import numpy as np
 
 # ── KIWASCO zone definitions ──────────────────────────────────────────────────
 ZONES = [
-    {"name": "Kisumu Central",  "population": 85000, "area_sqkm": 12.4, "target_revenue": 4_200_000},
-    {"name": "Kondele",         "population": 62000, "area_sqkm": 9.8,  "target_revenue": 2_800_000},
-    {"name": "Manyatta",        "population": 78000, "area_sqkm": 11.2, "target_revenue": 3_500_000},
-    {"name": "Nyalenda",        "population": 55000, "area_sqkm": 8.5,  "target_revenue": 2_200_000},
-    {"name": "Mamboleo",        "population": 41000, "area_sqkm": 15.3, "target_revenue": 1_900_000},
-    {"name": "Riat",            "population": 29000, "area_sqkm": 22.1, "target_revenue": 1_100_000},
-    {"name": "Kajulu",          "population": 24000, "area_sqkm": 18.7, "target_revenue": 950_000},
+    {"name": "Central Business District", "population": 45000, "area_sqkm": 5.2, "target_monthly_revenue": 15000000},
+    {"name": "Milimani & Suburbs", "population": 25000, "area_sqkm": 8.1, "target_monthly_revenue": 8500000},
+    {"name": "Nyamasaria & Kachok", "population": 65000, "area_sqkm": 12.4, "target_monthly_revenue": 11000000},
+    {"name": "Kondele & Manyatta", "population": 120000, "area_sqkm": 9.5, "target_monthly_revenue": 18000000},
+    {"name": "Otonglo & Maseno", "population": 40000, "area_sqkm": 15.0, "target_monthly_revenue": 7000000},
+    {"name": "Kibos & Chiga", "population": 35000, "area_sqkm": 11.2, "target_monthly_revenue": 6500000},
+    {"name": "Dunga & Nyalenda", "population": 85000, "area_sqkm": 7.8, "target_monthly_revenue": 10500000},
 ]
 
 # Tariff tiers (KES per cubic meter)

@@ -38,10 +38,10 @@ def seed():
     try:
         # ── Guard: skip if already seeded ─────────────────────────────────
         if db.query(models.Zone).count() > 0:
-            print("✅ Database already seeded — skipping.")
+            print("Database already seeded - skipping.")
             return
 
-        print("🌱 Seeding KIWASCO database...")
+        print("Seeding KIWASCO database...")
 
         # ── Zones ─────────────────────────────────────────────────────────
         zone_objs = []
@@ -50,7 +50,7 @@ def seed():
             db.add(z)
             zone_objs.append(z)
         db.flush()
-        print(f"  ✔ {len(zone_objs)} zones created")
+        print(f"  {len(zone_objs)} zones created")
 
         # ── Users ─────────────────────────────────────────────────────────
         users = [
@@ -75,7 +75,7 @@ def seed():
         ]
         for u in users:
             db.add(u)
-        print(f"  ✔ {len(users)} users created")
+        print(f"  {len(users)} users created")
 
         # ── Customers + Bills ─────────────────────────────────────────────
         months = months_between(START_DATE, END_DATE)
@@ -95,16 +95,16 @@ def seed():
                 db.flush()
 
                 bill_dicts = generate_bills(
-                    c.id, zone.name, c.customer_type.value,
+                    c.id, zone.name, getattr(c.customer_type, 'value', c.customer_type),
                     start_month=START_DATE, months=months,
                 )
                 for bd in bill_dicts:
                     db.add(models.Bill(**bd))
                 total_bills += len(bill_dicts)
             total_customers += count
-            print(f"    → {zone.name}: {count} customers, {count * months} bills")
+            print(f"    -> {zone.name}: {count} customers, {count * months} bills")
 
-        print(f"  ✔ {total_customers} customers, {total_bills} bills created")
+        print(f"  {total_customers} customers, {total_bills} bills created")
 
         # ── Alerts ────────────────────────────────────────────────────────
         alerts_data = [
@@ -123,15 +123,15 @@ def seed():
             db.add(models.Alert(**ad))
 
         db.commit()
-        print("\n✅ Seeding complete!")
-        print("\n📋 Login credentials:")
+        print("\nSeeding complete!")
+        print("\nLogin credentials:")
         print("   Admin:   username=admin    password=admin1234")
         print("   Analyst: username=analyst  password=analyst1234")
         print("   Viewer:  username=viewer   password=viewer1234")
 
     except Exception as e:
         db.rollback()
-        print(f"❌ Seed failed: {e}")
+        print(f"Seed failed: {e}")
         raise
     finally:
         db.close()
