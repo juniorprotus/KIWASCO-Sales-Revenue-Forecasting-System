@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 from typing import Optional
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql://kiwasco_user:kiwasco_pass@localhost:5432/kiwasco_db"
+    DATABASE_URL: str = "sqlite:///./kiwasco.db"
     SECRET_KEY: str = "kiwasco-super-secret-jwt-key-change-in-production-2024"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
