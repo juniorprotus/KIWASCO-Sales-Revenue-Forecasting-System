@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.database import Base, engine, get_db
-from app.routers import auth, zones, customers, bills, forecasts, dashboard, reports
+from app.routers import auth, zones, customers, bills, forecasts, dashboard, reports, tickets, revenue_anomalies, data_quality
 import logging
 
 app = FastAPI(
@@ -46,6 +46,9 @@ app.include_router(bills.router)
 app.include_router(forecasts.router)
 app.include_router(dashboard.router)
 app.include_router(reports.router)
+app.include_router(tickets.router)
+app.include_router(revenue_anomalies.router)
+app.include_router(data_quality.router)
 
 @app.get("/")
 def root():

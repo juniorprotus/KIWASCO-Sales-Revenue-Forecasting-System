@@ -9,6 +9,10 @@ import Billing    from './pages/Billing'
 import Customers  from './pages/Customers'
 import Reports    from './pages/Reports'
 import Zones      from './pages/Zones'
+import LeakTickets from './pages/LeakTickets'
+import RevenueAnomalies from './pages/RevenueAnomalies'
+import DataQuality from './pages/DataQuality'
+import AuditLog   from './pages/AuditLog'
 
 function PrivateLayout() {
   return (
@@ -22,6 +26,10 @@ function PrivateLayout() {
           <Route path="/customers"  element={<Customers />} />
           <Route path="/zones"      element={<Zones />} />
           <Route path="/reports"    element={<Reports />} />
+          <Route path="/tickets"    element={<LeakTickets />} />
+          <Route path="/anomalies"  element={<RevenueAnomalies />} />
+          <Route path="/data-quality" element={<DataQuality />} />
+          <Route path="/audit"      element={<AuditLog />} />
           <Route path="*"           element={<Navigate to="/" replace />} />
         </Routes>
       </main>

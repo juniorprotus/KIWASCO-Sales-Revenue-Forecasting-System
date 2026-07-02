@@ -82,3 +82,30 @@ export const reportsApi = {
     })
   },
 }
+
+// ── New Role-Based Operational APIs ──────────────────────
+export const ticketsApi = {
+  list:    (params) => api.get('/api/tickets/leaks', { params }),
+  get:     (id) => api.get(`/api/tickets/leaks/${id}`),
+  create:  (data) => api.post('/api/tickets/leaks', data),
+  update:  (id, data) => api.patch(`/api/tickets/leaks/${id}`, data),
+  summary: () => api.get('/api/tickets/leaks/stats/summary'),
+}
+
+export const revenueAnomaliesApi = {
+  list:    (params) => api.get('/api/revenue-anomalies', { params }),
+  get:     (id) => api.get(`/api/revenue-anomalies/${id}`),
+  create:  (data) => api.post('/api/revenue-anomalies', data),
+  update:  (id, data) => api.patch(`/api/revenue-anomalies/${id}`, data),
+  detect:  (params) => api.post('/api/revenue-anomalies/detect', params || {}),
+  summary: () => api.get('/api/revenue-anomalies/stats/summary'),
+}
+
+export const dataQualityApi = {
+  listFlags:   (params) => api.get('/api/data-quality/flags', { params }),
+  getFlag:     (id) => api.get(`/api/data-quality/flags/${id}`),
+  createFlag:  (data) => api.post('/api/data-quality/flags', data),
+  updateFlag:  (id, data) => api.patch(`/api/data-quality/flags/${id}`, data),
+  flagSummary: () => api.get('/api/data-quality/flags/stats/summary'),
+  auditLog:    (params) => api.get('/api/data-quality/audit', { params }),
+}

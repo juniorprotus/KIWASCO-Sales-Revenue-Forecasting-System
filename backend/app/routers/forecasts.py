@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
 from app import models, schemas
-from app.auth import get_current_active_user
+from app.auth import get_current_active_user, require_analyst, log_action
 from app.ml.prophet_model import forecast_zone
 
 router = APIRouter(prefix="/api/forecasts", tags=["Forecasting"])
@@ -13,7 +13,7 @@ def run_forecast(
     payload: schemas.ForecastRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    _=Depends(get_current_active_user),
+    current_user: models.User = Depends(require_analyst),  # analyst, data_steward, admin only
 ):
     """Trigger a Prophet forecast for a zone."""
     zone = db.query(models.Zone).filter(models.Zone.id == payload.zone_id).first()
@@ -56,6 +56,38 @@ def run_forecast(
                 setattr(existing, k, v)
         else:
             db.add(models.Forecast(**kwargs))
+    log_action(db, current_user.id, "run_forecast", "Forecast", zone.id,
+               f"Prophet forecast: {payload.forecast_type} | zone {zone.name} | {payload.periods} periods")
+
+    # Auto-create a LeakTicket if NRW prediction spikes > 20% above zone historical average
+    if payload.forecast_type == "nrw" and result.get("forecast"):
+        from app.models import LeakTicket
+        import numpy as np
+        predicted_values = [fc["predicted"] for fc in result["forecast"]]
+        historical_values = [h["actual"] for h in result.get("historical", []) if h["actual"] is not None]
+        if historical_values and predicted_values:
+            hist_avg = float(np.mean(historical_values))
+            max_predicted = max(predicted_values)
+            if hist_avg > 0:
+                pct_above = ((max_predicted - hist_avg) / hist_avg) * 100
+                if pct_above > 20:
+                    ticket = LeakTicket(
+                        zone_id=zone.id,
+                        title=f"AI NRW Alert: {zone.name} — {pct_above:.0f}% above baseline",
+                        description=(
+                            f"Prophet model predicted NRW of {max_predicted:.1f} m3 in the next "
+                            f"{payload.periods} months, which is {pct_above:.1f}% above the "
+                            f"historical average of {hist_avg:.1f} m3. Immediate field inspection recommended."
+                        ),
+                        predicted_nrw=max_predicted,
+                        nrw_threshold_pct=round(pct_above, 1),
+                        priority="critical" if pct_above > 50 else "high",
+                        status="open",
+                    )
+                    db.add(ticket)
+                    log_action(db, current_user.id, "auto_create_leak_ticket", "LeakTicket", None,
+                               f"NRW spike {pct_above:.1f}% above baseline for {zone.name}")
+
     db.commit()
 
     return {

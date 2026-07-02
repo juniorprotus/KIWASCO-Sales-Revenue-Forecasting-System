@@ -2,10 +2,10 @@
 
 An AI-powered digital transformation project for the Kisumu Water & Sewerage Company (KIWASCO). This system provides actionable insights into water demand, revenue collection, and non-revenue water (NRW) losses using Facebook (Meta) Prophet machine learning models.
 
-## 🚀 Why This Project Exists
+## Why This Project Exists
 This project was built to transition KIWASCO from reactive to proactive operations. By leveraging historical billing and consumption data, the system predicts future demand, detects anomalies, and forecasts revenue collection.
 
-## 🛠️ Tech Stack
+## Tech Stack
 - **Frontend**: React (Vite)
 - **Backend**: Python (FastAPI)
 - **Database**: SQLite (100% Free, Local, No Configuration Required)
@@ -14,7 +14,7 @@ This project was built to transition KIWASCO from reactive to proactive operatio
 
 ---
 
-## 💻 How to Run Locally
+## How to Run Locally
 
 Because this project is designed to be **completely free** with zero credit card requirements, the backend uses a local SQLite database file (`kiwasco.db`). This means you don't have to install PostgreSQL or configure any complex database connections!
 
@@ -44,7 +44,7 @@ npm run dev
 
 ---
 
-## ☁️ How to Host for Free (Render)
+## How to Host for Free (Render)
 
 This repository includes a `render.yaml` file pre-configured to host both your frontend and backend on Render's free tier. 
 
