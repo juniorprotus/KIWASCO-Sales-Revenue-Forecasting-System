@@ -14,19 +14,6 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.0
 
-  # ── Frontend (React Static Site) ─────────────────────────────────────────
-  - type: web
-    name: kiwasco-frontend
-    runtime: static
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: VITE_API_URL
-        value: https://kiwasco-api.onrender.com
+
 
 
