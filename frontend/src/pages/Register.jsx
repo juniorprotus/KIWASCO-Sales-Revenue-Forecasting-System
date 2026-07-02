@@ -105,7 +105,11 @@ export default function Register() {
               <select className="form-select" style={{ paddingLeft: 38 }}
                 value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
                 <option value="viewer">Management Viewer</option>
-                <option value="analyst">Data Analyst</option>
+                <option value="analyst">Revenue Analyst</option>
+                <option value="data_steward">Data Quality Steward</option>
+                <option value="revenue_officer">Revenue Officer</option>
+                <option value="field_officer">Field Operations Officer</option>
+                <option value="auditor">External Auditor (WASREB)</option>
                 <option value="admin">System Administrator</option>
               </select>
               <Briefcase size={14} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
