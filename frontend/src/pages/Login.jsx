@@ -34,6 +34,10 @@ export default function Login() {
       admin:   { username: 'admin',   password: 'admin1234'   },
       analyst: { username: 'analyst', password: 'analyst1234' },
       viewer:  { username: 'viewer',  password: 'viewer1234'  },
+      steward: { username: 'steward', password: 'steward1234' },
+      revenue: { username: 'revenue', password: 'revenue1234' },
+      field:   { username: 'field',   password: 'field1234'   },
+      auditor: { username: 'auditor', password: 'auditor1234' },
     }
     setForm(creds[role])
   }
@@ -161,14 +165,14 @@ export default function Login() {
               {settingUp ? 'Setting up...' : 'Setup Cloud DB'}
             </button>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {['admin', 'analyst', 'viewer'].map(role => (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {['admin', 'analyst', 'viewer', 'steward', 'revenue', 'field', 'auditor'].map(role => (
               <button
                 key={role}
                 type="button"
                 onClick={() => fillDemo(role)}
                 className="btn btn-ghost btn-sm"
-                style={{ flex: 1, justifyContent: 'center', textTransform: 'capitalize' }}
+                style={{ flex: '1 1 calc(25% - 8px)', justifyContent: 'center', textTransform: 'capitalize' }}
               >
                 {role}
               </button>
