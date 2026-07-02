@@ -1,16 +1,19 @@
 """
-Prophet-based forecasting engine for KIWASCO.
+Forecasting engine for KIWASCO.
+Uses Holt-Winters Exponential Smoothing (statsmodels) — lightweight,
+reliable, and runs comfortably on free-tier hosting (< 100 MB RAM).
+
 Supports: revenue, consumption, default_rate, nrw forecasting.
 """
-from prophet import Prophet
-from prophet.diagnostics import cross_validation, performance_metrics
 import pandas as pd
 import numpy as np
 from datetime import date
+from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import Session
 from app import models
 import warnings
 warnings.filterwarnings("ignore")
+
 
 def get_historical_data(db: Session, zone_id: int, metric: str) -> pd.DataFrame:
     """Pull historical monthly aggregated data from DB for a zone."""
@@ -60,75 +63,98 @@ def get_historical_data(db: Session, zone_id: int, metric: str) -> pd.DataFrame:
     monthly["y"] = pd.to_numeric(monthly["y"], errors="coerce").fillna(0.0)
     return monthly
 
-def run_prophet_forecast(df: pd.DataFrame, periods: int = 6) -> dict:
-    """Train Prophet and return forecast with uncertainty intervals."""
-    if df.empty or len(df) < 6:
-        return {}
 
-    model = Prophet(
-        yearly_seasonality=True,
-        weekly_seasonality=False,
-        daily_seasonality=False,
-        changepoint_prior_scale=0.1,
-        seasonality_prior_scale=5.0,
-        interval_width=0.80,
-    )
-    # Add custom Kenya rainy season seasonality
-    model.add_seasonality(name="long_rains", period=365.25, fourier_order=3)
+def run_forecast(df: pd.DataFrame, periods: int = 6) -> dict:
+    """
+    Train a Holt-Winters Exponential Smoothing model and return forecast
+    with uncertainty intervals (estimated from in-sample residuals).
+    """
+    from statsmodels.tsa.holtwinters import ExponentialSmoothing
+
+    if df.empty or len(df) < 6:
+        return {"error": "Need at least 6 months of data to forecast."}
+
+    # Prepare a clean time series
+    ts = df.set_index("ds")["y"].asfreq("MS")
+    ts = ts.fillna(method="ffill").fillna(0)
+
+    n = len(ts)
+    # Use seasonal_periods=12 if we have at least 2 full years, else trend-only
+    use_seasonal = n >= 24
+
     try:
-        model.fit(df, algorithm='Newton')
+        if use_seasonal:
+            model = ExponentialSmoothing(
+                ts,
+                trend="add",
+                seasonal="add",
+                seasonal_periods=12,
+                initialization_method="estimated",
+            ).fit(optimized=True)
+        else:
+            model = ExponentialSmoothing(
+                ts,
+                trend="add",
+                seasonal=None,
+                initialization_method="estimated",
+            ).fit(optimized=True)
     except Exception as e:
-        print(f"Prophet fit failed: {e}")
+        print(f"Holt-Winters fit failed: {e}")
         return {"error": f"Model fitting failed: {e}", "forecast": [], "historical": []}
 
-    future = model.make_future_dataframe(periods=periods, freq="MS")
-    forecast = model.predict(future)
+    # In-sample fitted values for accuracy metrics
+    fitted = model.fittedvalues
+    residuals = ts - fitted
+    residual_std = float(residuals.std()) if len(residuals) > 1 else 0.0
 
-    # Only return future months
-    future_fc = forecast[forecast["ds"] > df["ds"].max()].copy()
-    historical_fc = forecast[forecast["ds"] <= df["ds"].max()].copy()
+    # Compute accuracy metrics
+    mae = float(np.mean(np.abs(residuals)))
+    rmse = float(np.sqrt(np.mean(residuals ** 2)))
 
-    # Compute accuracy metrics on in-sample predictions
-    merged = df.merge(historical_fc[["ds", "yhat"]], on="ds", how="inner")
-    if not merged.empty:
-        mae = float(np.mean(np.abs(merged["y"] - merged["yhat"])))
-        rmse = float(np.sqrt(np.mean((merged["y"] - merged["yhat"]) ** 2)))
-    else:
-        mae, rmse = None, None
+    # Forecast future periods
+    forecast_values = model.forecast(periods)
 
+    # Build forecast result rows with uncertainty bands
+    z_80 = 1.28  # z-score for 80% prediction interval
     results = []
-    for _, row in future_fc.iterrows():
+    for i, (dt, yhat) in enumerate(forecast_values.items()):
+        # Widen uncertainty slightly for each step ahead
+        step_std = residual_std * np.sqrt(1 + i * 0.1)
         results.append({
-            "forecast_month": row["ds"].date(),
-            "predicted": max(0, round(float(row["yhat"]), 2)),
-            "lower_bound": max(0, round(float(row["yhat_lower"]), 2)),
-            "upper_bound": max(0, round(float(row["yhat_upper"]), 2)),
+            "forecast_month": dt.date() if hasattr(dt, "date") else dt,
+            "predicted": max(0, round(float(yhat), 2)),
+            "lower_bound": max(0, round(float(yhat - z_80 * step_std), 2)),
+            "upper_bound": max(0, round(float(yhat + z_80 * step_std), 2)),
         })
 
-    # Also return historical for chart overlaying
+    # Historical data points (actual + model fit) for chart overlay
     historical_points = []
-    for _, row in forecast.iterrows():
-        if row["ds"] <= df["ds"].max():
-            actual_row = df[df["ds"] == row["ds"]]
-            actual = float(actual_row["y"].values[0]) if not actual_row.empty else None
-            historical_points.append({
-                "ds": row["ds"].strftime("%Y-%m-%d"),
-                "yhat": max(0, round(float(row["yhat"]), 2)),
-                "actual": actual,
-            })
+    for dt in ts.index:
+        actual_val = float(ts[dt])
+        fitted_val = float(fitted[dt]) if dt in fitted.index else actual_val
+        historical_points.append({
+            "ds": dt.strftime("%Y-%m-%d"),
+            "yhat": max(0, round(fitted_val, 2)),
+            "actual": round(actual_val, 2),
+        })
 
     return {
         "forecast": results,
         "historical": historical_points,
-        "mae": mae,
-        "rmse": rmse,
+        "mae": round(mae, 2),
+        "rmse": round(rmse, 2),
     }
 
+
 def forecast_zone(db: Session, zone_id: int, metric: str, periods: int = 6) -> dict:
+    """Entry point called by the /api/forecasts/run endpoint."""
     df = get_historical_data(db, zone_id, metric)
     if df.empty:
         return {"error": "Insufficient data for forecasting", "forecast": [], "historical": []}
-    result = run_prophet_forecast(df, periods)
+    result = run_forecast(df, periods)
+    if "error" in result and "forecast" not in result:
+        result["forecast"] = []
+        result["historical"] = []
     result["zone_id"] = zone_id
     result["metric"] = metric
     return result
