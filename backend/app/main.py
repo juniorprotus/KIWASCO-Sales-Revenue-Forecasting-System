@@ -36,6 +36,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
         content={"detail": f"Server Error: {str(exc)}", "type": str(type(exc))},
+        headers={"Access-Control-Allow-Origin": "*"}
     )
 
 # Register routers

@@ -56,6 +56,8 @@ def get_historical_data(db: Session, zone_id: int, metric: str) -> pd.DataFrame:
         return pd.DataFrame()
 
     monthly = monthly.sort_values("ds").reset_index(drop=True)
+    monthly = monthly.dropna()
+    monthly["y"] = pd.to_numeric(monthly["y"], errors="coerce").fillna(0.0)
     return monthly
 
 def run_prophet_forecast(df: pd.DataFrame, periods: int = 6) -> dict:
@@ -73,7 +75,11 @@ def run_prophet_forecast(df: pd.DataFrame, periods: int = 6) -> dict:
     )
     # Add custom Kenya rainy season seasonality
     model.add_seasonality(name="long_rains", period=365.25, fourier_order=3)
-    model.fit(df)
+    try:
+        model.fit(df, algorithm='Newton')
+    except Exception as e:
+        print(f"Prophet fit failed: {e}")
+        return {"error": f"Model fitting failed: {e}", "forecast": [], "historical": []}
 
     future = model.make_future_dataframe(periods=periods, freq="MS")
     forecast = model.predict(future)
