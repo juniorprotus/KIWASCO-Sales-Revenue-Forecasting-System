@@ -45,7 +45,7 @@ def monthly_trend(
     """Monthly aggregated revenue, consumption, NRW for chart."""
     q = (
         db.query(
-            func.date_trunc("month", models.Bill.bill_date).label("month"),
+            func.strftime("%Y-%m", models.Bill.bill_date).label("month"),
             func.sum(models.Bill.amount_billed).label("billed"),
             func.sum(models.Bill.amount_paid).label("collected"),
             func.sum(models.Bill.units_consumed).label("consumption"),
@@ -56,10 +56,10 @@ def monthly_trend(
     )
     if zone_id:
         q = q.filter(models.Customer.zone_id == zone_id)
-    rows = q.group_by(func.date_trunc("month", models.Bill.bill_date)).order_by("month").all()
+    rows = q.group_by(func.strftime("%Y-%m", models.Bill.bill_date)).order_by("month").all()
     return [
         {
-            "month": r.month.strftime("%Y-%m") if r.month else None,
+            "month": r.month if r.month else None,
             "billed": round(r.billed or 0, 2),
             "collected": round(r.collected or 0, 2),
             "collection_rate": round((r.collected / r.billed * 100) if r.billed else 0, 1),
