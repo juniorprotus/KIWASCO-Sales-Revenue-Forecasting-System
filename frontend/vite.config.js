@@ -7,14 +7,22 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['icon.svg'],
       manifest: {
         name: 'KIWASCO Forecasting System',
         short_name: 'KIWASCO',
         description: 'Sales and Revenue Forecasting System for KIWASCO',
         theme_color: '#070d1f',
         background_color: '#070d1f',
-        display: 'standalone'
+        display: 'standalone',
+        icons: [
+          {
+            src: 'icon.svg',
+            sizes: '192x192 512x512',
+            type: 'image/svg+xml',
+            purpose: 'any maskable'
+          }
+        ]
       }
     })
   ],
