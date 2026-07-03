@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { zonesApi, forecastsApi } from '../api/client'
 import {
-  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend, ReferenceLine
+  ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Legend
 } from 'recharts'
 import {
   TrendingUp, Play, MapPin, BarChart3, Droplets,
@@ -10,13 +10,16 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-const fmt = (n) => n >= 1e6 ? `${(n/1e6).toFixed(2)}M` : n >= 1e3 ? `${(n/1e3).toFixed(1)}K` : n?.toFixed(0)
+const fmt = (n) => {
+  if (n == null || isNaN(n)) return '—'
+  return n >= 1e6 ? `${(n/1e6).toFixed(2)}M` : n >= 1e3 ? `${(n/1e3).toFixed(1)}K` : n?.toFixed(0)
+}
 
 const METRICS = [
-  { key: 'revenue',      label: 'Revenue Forecast',     icon: DollarSign, unit: 'KES',  color: '#0ea5e9' },
-  { key: 'consumption',  label: 'Demand Forecast',      icon: Droplets,   unit: 'm³',   color: '#10b981' },
-  { key: 'default_rate', label: 'Default Rate Forecast', icon: Percent,    unit: '%',    color: '#f59e0b' },
-  { key: 'nrw',          label: 'NRW Loss Forecast',    icon: AlertTriangle, unit: 'm³', color: '#ef4444' },
+  { key: 'revenue',      label: 'Revenue',      icon: DollarSign,    unit: 'KES',  color: '#0ea5e9' },
+  { key: 'consumption',  label: 'Demand',        icon: Droplets,      unit: 'm³',   color: '#10b981' },
+  { key: 'default_rate', label: 'Default Rate',  icon: Percent,       unit: '%',    color: '#f59e0b' },
+  { key: 'nrw',          label: 'NRW Loss',      icon: AlertTriangle, unit: 'm³',   color: '#ef4444' },
 ]
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -24,10 +27,11 @@ const CustomTooltip = ({ active, payload, label }) => {
   return (
     <div style={{
       background: '#1e2433', border: '1px solid #334155',
-      borderRadius: 10, padding: '12px 16px', fontSize: 12
+      borderRadius: 10, padding: '12px 16px', fontSize: 12,
+      boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
     }}>
-      <p style={{ color: '#94a3b8', marginBottom: 8 }}>{label}</p>
-      {payload.map((p, i) => (
+      <p style={{ color: '#94a3b8', marginBottom: 8, fontWeight: 600 }}>{label}</p>
+      {payload.filter(p => p.value != null).map((p, i) => (
         <p key={i} style={{ color: p.color, margin: '3px 0' }}>
           {p.name}: <strong>{typeof p.value === 'number' ? fmt(p.value) : p.value}</strong>
         </p>
@@ -67,16 +71,34 @@ export default function Forecasting() {
     }
   }
 
-  // Merge historical + forecast for the chart
+  // Merge historical + forecast into a single chart-friendly array
   const chartData = (() => {
     if (!result) return []
+
     const hist = (result.historical || []).map(h => ({
-      ds: h.ds, actual: h.actual, predicted: h.yhat, type: 'historical'
+      label: h.ds?.slice(0, 7),          // "2024-01"
+      actual: h.actual,
+      fitted: h.yhat,                    // model's in-sample fit
     }))
-    const fc = (result.forecast || []).map(f => ({
-      ds: typeof f.forecast_month === 'string' ? f.forecast_month : f.forecast_month,
-      predicted: f.predicted, lower: f.lower_bound, upper: f.upper_bound, type: 'forecast'
-    }))
+
+    const fc = (result.forecast || []).map(f => {
+      const monthStr = typeof f.forecast_month === 'string'
+        ? f.forecast_month.slice(0, 7)
+        : f.forecast_month
+      return {
+        label: monthStr,
+        predicted: f.predicted,
+        lower: f.lower_bound,
+        upper: f.upper_bound,
+      }
+    })
+
+    // Bridge: connect last historical point to first forecast point
+    if (hist.length > 0 && fc.length > 0) {
+      const lastHist = hist[hist.length - 1]
+      fc[0].fitted = lastHist.fitted   // create visual bridge
+    }
+
     return [...hist, ...fc]
   })()
 
@@ -94,7 +116,7 @@ export default function Forecasting() {
       <div className="page-header">
         <div>
           <div className="page-header-title">AI Forecasting Engine</div>
-          <div className="page-header-sub">Prophet-powered predictions for KIWASCO revenue, demand, defaults &amp; NRW</div>
+          <div className="page-header-sub">Holt-Winters powered predictions for KIWASCO revenue, demand, defaults &amp; NRW</div>
         </div>
       </div>
 
@@ -108,7 +130,7 @@ export default function Forecasting() {
               onClick={() => { setMetric(m.key); setResult(null) }}
             >
               <m.icon size={14} style={{ marginRight: 5, verticalAlign: -2 }} />
-              {m.label.replace(' Forecast', '')}
+              {m.label}
             </button>
           ))}
         </div>
@@ -133,7 +155,7 @@ export default function Forecasting() {
             </select>
           </div>
           <button className="btn btn-primary" onClick={runForecast} disabled={running} style={{ height: 44 }}>
-            {running ? <><div className="spinner" /> Running Prophet…</> : <><Play size={15} /> Run Forecast</>}
+            {running ? <><div className="spinner" /> Running Model…</> : <><Play size={15} /> Run Forecast</>}
           </button>
         </div>
 
@@ -141,11 +163,11 @@ export default function Forecasting() {
         {result && (
           <>
             {/* Accuracy Metrics */}
-            <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 24 }}>
+            <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', marginBottom: 24 }}>
               <div className="stat-card blue fade-up">
                 <div className="stat-card-label">Model</div>
-                <div className="stat-card-value" style={{ fontSize: 20 }}>Prophet</div>
-                <div className="stat-card-change">Facebook/Meta time series</div>
+                <div className="stat-card-value" style={{ fontSize: 18 }}>Holt-Winters</div>
+                <div className="stat-card-change">Exponential Smoothing</div>
               </div>
               <div className="stat-card green fade-up">
                 <div className="stat-card-label">MAE</div>
@@ -167,33 +189,92 @@ export default function Forecasting() {
             {/* Main Chart */}
             <div className="chart-container" style={{ marginBottom: 24 }}>
               <div className="chart-title">
-                {selMetric.label} — {zones.find(z => z.id === selZone)?.name || 'Zone'}
+                {selMetric.label} Forecast — {zones.find(z => z.id === selZone)?.name || 'Zone'}
               </div>
               <div className="chart-sub">
                 Historical data + {periods}-month prediction with 80% confidence interval
               </div>
-              <ResponsiveContainer width="100%" height={340}>
-                <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+              <ResponsiveContainer width="100%" height={380}>
+                <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gForecast" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor={selMetric.color} stopOpacity={0.3} />
-                      <stop offset="95%" stopColor={selMetric.color} stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="gConfidence" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor={selMetric.color} stopOpacity={0.08} />
+                      <stop offset="5%"  stopColor={selMetric.color} stopOpacity={0.25} />
                       <stop offset="95%" stopColor={selMetric.color} stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                  <XAxis dataKey="ds" tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={v => v?.slice(0,7)} />
-                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={v => fmt(v)} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 10, fill: '#64748b' }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: '#64748b' }}
+                    tickFormatter={v => fmt(v)}
+                    width={65}
+                  />
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Area type="monotone" dataKey="upper" name="Upper Bound" stroke="none" fill="url(#gConfidence)" />
-                  <Area type="monotone" dataKey="lower" name="Lower Bound" stroke="none" fill="url(#gConfidence)" />
-                  <Line type="monotone" dataKey="actual"    name={`Actual (${selMetric.unit})`}  stroke="#64748b" strokeWidth={1.5} dot={{ r:2 }} connectNulls />
-                  <Line type="monotone" dataKey="predicted" name={`Predicted (${selMetric.unit})`} stroke={selMetric.color} strokeWidth={2.5} dot={{ r:2.5 }} strokeDasharray={chartData.some(d=>d.type==='forecast') ? undefined : undefined} />
-                </AreaChart>
+                  <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+
+                  {/* Confidence band (shaded area between lower and upper) */}
+                  <Area
+                    type="monotone"
+                    dataKey="upper"
+                    name="Upper Bound"
+                    stroke="none"
+                    fill={selMetric.color}
+                    fillOpacity={0.08}
+                    connectNulls={false}
+                    isAnimationActive={true}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="lower"
+                    name="Lower Bound"
+                    stroke="none"
+                    fill="#0f172a"
+                    fillOpacity={0.9}
+                    connectNulls={false}
+                    isAnimationActive={true}
+                  />
+
+                  {/* Historical actual data line */}
+                  <Line
+                    type="monotone"
+                    dataKey="actual"
+                    name={`Actual (${selMetric.unit})`}
+                    stroke="#94a3b8"
+                    strokeWidth={2}
+                    dot={{ r: 2, fill: '#94a3b8' }}
+                    connectNulls
+                    isAnimationActive={true}
+                  />
+
+                  {/* Historical fitted line (model's fit to past data) */}
+                  <Line
+                    type="monotone"
+                    dataKey="fitted"
+                    name={`Model Fit (${selMetric.unit})`}
+                    stroke={selMetric.color}
+                    strokeWidth={2}
+                    strokeDasharray="6 3"
+                    dot={false}
+                    connectNulls
+                    isAnimationActive={true}
+                  />
+
+                  {/* Future predicted line */}
+                  <Line
+                    type="monotone"
+                    dataKey="predicted"
+                    name={`Predicted (${selMetric.unit})`}
+                    stroke={selMetric.color}
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: selMetric.color, strokeWidth: 2, stroke: '#fff' }}
+                    connectNulls
+                    isAnimationActive={true}
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
 
@@ -242,7 +323,7 @@ export default function Forecasting() {
               Select a zone and run a forecast
             </h3>
             <p style={{ fontSize: 13, maxWidth: 380, margin: '0 auto' }}>
-              The Prophet model will analyze historical billing data and project future {metric.replace('_', ' ')} patterns.
+              The AI model will analyze historical billing data and project future {metric.replace('_', ' ')} patterns.
             </p>
           </div>
         )}
