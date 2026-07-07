@@ -143,5 +143,22 @@ class DashboardSummary(BaseModel):
     total_nrw_this_month: float
     nrw_percentage: float
     total_zones: int
-    unpaid_bills: int
     alerts_count: int
+
+# ── Meter Readings ────────────────────────────────────────────────────────────
+class MeterReadingBase(BaseModel):
+    customer_id: int
+    reading_date: date
+    current_reading: float
+    previous_reading: Optional[float] = None
+    units_consumed: Optional[float] = None
+
+class MeterReadingCreate(MeterReadingBase):
+    pass
+
+class MeterReadingOut(MeterReadingBase):
+    id: int
+    recorded_by_id: Optional[int]
+    created_at: Optional[datetime]
+    class Config:
+        from_attributes = True

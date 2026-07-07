@@ -162,6 +162,21 @@ class LeakTicket(Base):
     zone = relationship("Zone", back_populates="leak_tickets")
     assigned_to_user = relationship("User", back_populates="assigned_tickets")
 
+class MeterReading(Base):
+    """Raw door-to-door meter readings recorded by Field Officers."""
+    __tablename__ = "meter_readings"
+    id = Column(Integer, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    reading_date = Column(Date, nullable=False)
+    current_reading = Column(Float, nullable=False)
+    previous_reading = Column(Float, nullable=True)
+    units_consumed = Column(Float, nullable=True)
+    recorded_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    customer = relationship("Customer")
+    recorded_by = relationship("User")
+
 class RevenueAnomaly(Base):
     """Revenue anomalies detected by Prophet or billing analysis.
     Revenue Officers review and validate these before any billing action is taken."""

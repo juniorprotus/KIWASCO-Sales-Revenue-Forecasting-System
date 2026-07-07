@@ -50,6 +50,7 @@ app.include_router(reports.router)
 app.include_router(tickets.router)
 app.include_router(revenue_anomalies.router)
 app.include_router(data_quality.router)
+app.include_router(meter_readings.router)
 
 @app.get("/")
 def root():

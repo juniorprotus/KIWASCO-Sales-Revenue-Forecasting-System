@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, TrendingUp, Receipt, Users, MapPin,
   FileBarChart2, AlertTriangle, DollarSign, Database, Shield,
-  LogOut, Droplets, Menu, X
+  LogOut, Droplets, Menu, X, ClipboardList
 } from 'lucide-react'
 
 const NAV_SECTIONS = [
@@ -18,6 +18,7 @@ const NAV_SECTIONS = [
     { to: '/zones',       icon: MapPin,          label: 'Zones',             access: 'zones'       },
   ]},
   { label: 'Field & Revenue', items: [
+    { to: '/meter-readings', icon: ClipboardList, label: 'Meter Readings',   access: 'tickets'     },
     { to: '/tickets',     icon: AlertTriangle,   label: 'NRW Tickets',       access: 'tickets'     },
     { to: '/anomalies',   icon: DollarSign,      label: 'Revenue Anomalies', access: 'anomalies'   },
   ]},

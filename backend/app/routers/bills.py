@@ -78,9 +78,16 @@ def zone_comparison(
     _=Depends(get_current_active_user),
 ):
     """Compare all zones for a given period."""
-    now = date.today()
-    yr = year or now.year
-    mn = month or now.month
+    if year and month:
+        yr, mn = year, month
+    else:
+        latest_bill = db.query(models.Bill).order_by(models.Bill.bill_date.desc()).first()
+        if latest_bill:
+            yr = latest_bill.bill_date.year
+            mn = latest_bill.bill_date.month
+        else:
+            now = date.today()
+            yr, mn = now.year, now.month
     zones = db.query(models.Zone).all()
     result = []
     for zone in zones:

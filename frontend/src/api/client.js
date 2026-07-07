@@ -109,3 +109,8 @@ export const dataQualityApi = {
   flagSummary: () => api.get('/api/data-quality/flags/stats/summary'),
   auditLog:    (params) => api.get('/api/data-quality/audit', { params }),
 }
+
+export const meterReadingsApi = {
+  list:   (params) => api.get('/api/meter-readings/', { params }),
+  create: (data) => api.post('/api/meter-readings/', data),
+}

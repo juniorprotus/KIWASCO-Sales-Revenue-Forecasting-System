@@ -13,6 +13,7 @@ import LeakTickets from './pages/LeakTickets'
 import RevenueAnomalies from './pages/RevenueAnomalies'
 import DataQuality from './pages/DataQuality'
 import AuditLog   from './pages/AuditLog'
+import MeterReadings from './pages/MeterReadings'
 
 function PrivateLayout() {
   return (
@@ -30,6 +31,7 @@ function PrivateLayout() {
           <Route path="/anomalies"  element={<RevenueAnomalies />} />
           <Route path="/data-quality" element={<DataQuality />} />
           <Route path="/audit"      element={<AuditLog />} />
+          <Route path="/meter-readings" element={<MeterReadings />} />
           <Route path="*"           element={<Navigate to="/" replace />} />
         </Routes>
       </main>
