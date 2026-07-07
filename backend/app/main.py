@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.database import Base, engine, get_db
-from app.routers import auth, zones, customers, bills, forecasts, dashboard, reports, tickets, revenue_anomalies, data_quality
+from app.routers import auth, zones, customers, bills, forecasts, dashboard, reports, tickets, revenue_anomalies, data_quality, meter_readings
 import logging
 
 app = FastAPI(
