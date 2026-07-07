@@ -12,6 +12,7 @@ def list_customers(
     zone_id: Optional[int] = None,
     customer_type: Optional[str] = None,
     is_active: Optional[bool] = None,
+    search: Optional[str] = None,
     skip: int = 0,
     limit: int = Query(default=50, le=200),
     db: Session = Depends(get_db),
@@ -24,6 +25,13 @@ def list_customers(
         q = q.filter(models.Customer.customer_type == customer_type)
     if is_active is not None:
         q = q.filter(models.Customer.is_active == is_active)
+    if search:
+        search_filter = f"%{search}%"
+        q = q.filter(
+            models.Customer.name.like(search_filter) |
+            models.Customer.account_no.like(search_filter) |
+            models.Customer.meter_no.like(search_filter)
+        )
     return q.offset(skip).limit(limit).all()
 
 @router.get("/count")

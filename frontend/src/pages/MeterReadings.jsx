@@ -27,8 +27,8 @@ export default function MeterReadings() {
       if (selZone) params.zone_id = selZone
       if (search) params.search = search
       const res = await customersApi.list(params)
-      setCustomers(res.data.data || [])
-      if (res.data.data.length === 0) toast('No customers found', { icon: '🔍' })
+      setCustomers(res.data || [])
+      if (res.data.length === 0) toast('No customers found', { icon: '🔍' })
     } catch (err) {
       toast.error('Failed to search customers')
     } finally {
