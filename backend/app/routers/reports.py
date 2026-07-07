@@ -54,7 +54,12 @@ def export_excel(
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
 
-    yr = year or date.today().year
+    if year:
+        yr = year
+    else:
+        latest_bill = db.query(models.Bill).order_by(models.Bill.bill_date.desc()).first()
+        yr = latest_bill.bill_date.year if latest_bill else date.today().year
+
     rows = _get_monthly_data(db, yr, zone_id)
 
     wb = Workbook()
@@ -134,5 +139,9 @@ def report_summary(
     db: Session = Depends(get_db),
     _=Depends(get_current_active_user),
 ):
-    yr = year or date.today().year
+    if year:
+        yr = year
+    else:
+        latest_bill = db.query(models.Bill).order_by(models.Bill.bill_date.desc()).first()
+        yr = latest_bill.bill_date.year if latest_bill else date.today().year
     return _get_monthly_data(db, yr, zone_id)

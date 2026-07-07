@@ -10,19 +10,28 @@ router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 
 @router.get("/summary")
 def dashboard_summary(db: Session = Depends(get_db), _=Depends(get_current_active_user)):
-    now = date.today()
+    # Find the latest bill in the database to establish the "current" month for the demo
+    latest_bill = db.query(models.Bill).order_by(models.Bill.bill_date.desc()).first()
+    if latest_bill:
+        cur_year = latest_bill.bill_date.year
+        cur_month = latest_bill.bill_date.month
+    else:
+        now = date.today()
+        cur_year = now.year
+        cur_month = now.month
+
     # Current month bills
     cur_bills = (
         db.query(models.Bill)
         .filter(
-            extract("year", models.Bill.bill_date) == now.year,
-            extract("month", models.Bill.bill_date) == now.month,
+            extract("year", models.Bill.bill_date) == cur_year,
+            extract("month", models.Bill.bill_date) == cur_month,
         )
         .all()
     )
     # Previous month for comparison
-    prev_month = (now.month - 1) or 12
-    prev_year = now.year if now.month > 1 else now.year - 1
+    prev_month = (cur_month - 1) or 12
+    prev_year = cur_year if cur_month > 1 else cur_year - 1
     prev_bills = (
         db.query(models.Bill)
         .filter(
@@ -91,7 +100,15 @@ def mark_alert_read(alert_id: int, db: Session = Depends(get_db), _=Depends(get_
 @router.get("/kpi-cards")
 def kpi_cards(db: Session = Depends(get_db), _=Depends(get_current_active_user)):
     """7-zone KPI summary cards for the executive dashboard."""
-    now = date.today()
+    latest_bill = db.query(models.Bill).order_by(models.Bill.bill_date.desc()).first()
+    if latest_bill:
+        cur_year = latest_bill.bill_date.year
+        cur_month = latest_bill.bill_date.month
+    else:
+        now = date.today()
+        cur_year = now.year
+        cur_month = now.month
+
     zones = db.query(models.Zone).all()
     cards = []
     for zone in zones:
@@ -100,8 +117,8 @@ def kpi_cards(db: Session = Depends(get_db), _=Depends(get_current_active_user))
             .join(models.Customer)
             .filter(
                 models.Customer.zone_id == zone.id,
-                extract("year", models.Bill.bill_date) == now.year,
-                extract("month", models.Bill.bill_date) == now.month,
+                extract("year", models.Bill.bill_date) == cur_year,
+                extract("month", models.Bill.bill_date) == cur_month,
             )
             .all()
         )
